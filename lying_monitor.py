@@ -5,10 +5,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import csv
 import copy
-from scipy.stats import mode
+import PokeC
+import pickle
+import Noordin
+import math
+from sklearn import linear_model, datasets
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import precision_recall_fscore_support
 
-max_centrality=0
-min_honesty=0
+no_red=0
+average_centrality=0
+
 
 def read_network_data_gexf(path):
     return nx.read_gexf(path)
@@ -17,44 +24,52 @@ def read_network_data_gml(path):
     return nx.read_gml(path)
 
 def draw_network(G):
-    # get unique groups
-    for node in G.nodes():
-        if str(node).split("_")[0]=="R":
-            G.node[node]['color']="Red"
-        else:
-             G.node[node]['color']="Blue"
+
+
+    colors_dict={n:G.node[n]['color'] for n in G.nodes()}
+    colors=colors_dict.values()
+    nodes=colors_dict.keys()
+
+
+    pos = nx.spring_layout(G)
+    nx.draw_networkx_edges(G, pos, alpha=1)
+    nx.draw_networkx_nodes(G, pos, nodelist=nodes, node_color=colors,
+                                with_labels=True, node_size=100)
+
+    plt.axis('off')
+    plt.show()
 
 
 
-    #colors=[G[n]['color'] for n in nodes]
-    # pos = nx.spring_layout(G)
-    # nx.draw_networkx_edges(G, pos, alpha=1)
-    # nx.draw_networkx_nodes(G, pos, nodelist=nodes, node_color=colors,
-    #                             with_labels=True, node_size=100)
-    #
-    # plt.axis('off')
-    # plt.show()
-
-
-def assign_colors(G):
-    node_colors={}
-    with open("data//Noordin_Red.csv") as f:
-      colors  =csv.DictReader(f)
+def network_details(G_2):
 
 
 
-      for element in colors:
-
-          if element["Meeting  3"]=='1':
-            node_colors[element['Name']]="Red"
-    for node in G:
-        if not node_colors.has_key(node):
-
-            node_colors[node]="Blue"
-
-    nx.set_node_attributes(G,'color',node_colors)
+    G_3=assign_centrality(G_2)
+    assign_honesty(G_3)
 
 
+    print (len([n for n in G_3.nodes() if G_3.node[n]['color']=="Red"]),"# Red")
+    print (len(G_3.edges()),"# Edges")
+    print (len(G_3.nodes()),"# nodes")
+    print average_centrality
+    degree_dist={}
+    for node in G_3.nodes():
+         if G_3.node[node]['color']=="Red":
+            deg=len(G_3.neighbors(node))
+
+
+            if deg not in degree_dist.keys():
+                degree_dist[deg]=0
+
+            degree_dist[deg]+=1
+    #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
+    print degree_dist
+    plt.scatter(degree_dist.keys(),[math.log10(i) for i in degree_dist.values()],c='b')
+    plt.xlabel("Degree")
+    plt.ylabel("Log frequency")
+    #plt.axis([0,max(degree_dist.keys())+5,0,max(degree_dist.values())+5])
+    plt.show()
 
 
 
@@ -65,11 +80,6 @@ def assign_honesty(G):
     honesty=np.random.normal(mu,sigma,len(G.nodes()))
     honesty=abs(honesty)
 
-
-
-    #honesty=[(n- min(honesty))/(max(honesty)-min(honesty)) for n in honesty]  # range transform the honesty values between 0 and 1
-
-    #print normalized_honesty
     i=0
     node_honesty={}
     for node in G.nodes():
@@ -79,17 +89,32 @@ def assign_honesty(G):
     nx.set_node_attributes(G,'honesty',node_honesty)
 
 
-    global min_honesty
-    min_honesty=min(honesty)
-def assign_centrality(G, centralityFunction):
 
-    centrality_values=centralityFunction(G)
+def assign_centrality(G):
 
-    nx.set_node_attributes(G,'centrality',centrality_values)
 
-    global max_centrality
 
-    max_centrality=max(centrality_values.values())
+    for u in G.nodes():
+
+            #centrality=len([n for n in G.neighbors(u) if G.node[n]['color']=="Red"])
+            # if len(G.neighbors(u))>0:
+            #     centrality=1.0/len(G.neighbors(u))
+            # else:
+            #     centrality=0
+            centrality=len(G.neighbors(u))
+            G.node[u]['centrality']=centrality
+
+
+    return G
+def assign_random_centrality(G):
+
+    for u in G.nodes():
+
+            centrality=np.random.random_integers(1,20)
+            G.node[u]['centrality']=centrality
+
+
+    return G
 
 def get_neighbor_colors_setting1(G,node):
 
@@ -100,7 +125,7 @@ def get_neighbor_colors_setting1(G,node):
         rand=np.random.random()
 
         if (G.node[neighbor]['color']=="Blue"):
-            prob_lie=1.0*min_honesty/G.node[node]['honesty']
+            prob_lie=(1-G.node[node]['honesty'])
 
 
             if prob_lie >rand:
@@ -110,9 +135,9 @@ def get_neighbor_colors_setting1(G,node):
                 neighbor_colors[neighbor]="Blue"
 
 
-
         elif (G.node[neighbor]['color']=="Red"):
-            prob_lie=G.node[neighbor]['centrality']*min_honesty/(G.node[node]['honesty']*max_centrality)
+            prob_lie=min((1.0*G.node[neighbor]['centrality']*(1-G.node[node]['honesty']))/G.node[node]['centrality'],1)
+
 
 
             if prob_lie>rand:
@@ -139,7 +164,7 @@ def get_neighbor_colors_setting2(G,node):
             rand=np.random.random()
 
             if (G.node[neighbor]['color']=="Blue"):
-                prob_lie=1.0*min_honesty/G.node[node]['honesty']
+                prob_lie=(1-G.node[node]['honesty'])
                 if prob_lie >rand:
 
                     neighbor_colors[neighbor]="Red"
@@ -147,7 +172,7 @@ def get_neighbor_colors_setting2(G,node):
                     neighbor_colors[neighbor]="Blue"
 
             elif (G.node[neighbor]['color']=="Red"):
-                prob_lie=G.node[neighbor]['centrality']*min_honesty/(G.node[node]['honesty']*max_centrality)
+                prob_lie=min((1.0*G.node[neighbor]['centrality']*(1-G.node[node]['honesty']))/G.node[node]['centrality'],1)
 
                 if prob_lie>rand:
                     neighbor_colors[neighbor]="Blue"
@@ -159,13 +184,14 @@ def get_neighbor_colors_setting2(G,node):
 def get_neighbor_colors_setting3(G,node):
 
     neighbor_colors={}
+
     for neighbor in G.neighbors(node):
         rand=np.random.random()
         if (G.node[node]['color']=="Blue"):
              if (G.node[neighbor]['color']=="Blue"):
                 neighbor_colors[neighbor]="Blue"
              else:
-                prob_lie=G.node[neighbor]['centrality']*min_honesty/(G.node[node]['honesty']*max_centrality)
+                prob_lie=min((1.0*G.node[neighbor]['centrality']*(1-G.node[node]['honesty']))/G.node[node]['centrality'],1)
                 if prob_lie>rand:
                     neighbor_colors[neighbor]="Blue"
                 else:
@@ -177,7 +203,7 @@ def get_neighbor_colors_setting3(G,node):
 
 
             if (G.node[neighbor]['color']=="Blue"):
-                prob_lie=1.0*min_honesty/G.node[node]['honesty']
+                prob_lie=(1-G.node[node]['honesty'])
                 if prob_lie >rand:
 
                     neighbor_colors[neighbor]="Red"
@@ -185,7 +211,8 @@ def get_neighbor_colors_setting3(G,node):
                     neighbor_colors[neighbor]="Blue"
 
             elif (G.node[neighbor]['color']=="Red"):
-                prob_lie=G.node[neighbor]['centrality']*min_honesty/(G.node[node]['honesty']*max_centrality)
+                prob_lie=min((1.0*G.node[neighbor]['centrality']*(1-G.node[node]['honesty']))/G.node[node]['centrality'],1)
+
 
                 if prob_lie>rand:
                     neighbor_colors[neighbor]="Blue"
@@ -214,11 +241,20 @@ def get_color_score_1(terrorist_graph,node):
         red_score*=(1-terrorist_graph.node[n]["EstHonBlue"])
 
 
-    conf_red=red_score
-    conf_blue=blue_score
+    conf_red=0
+
+    for n in terrorist_graph.node[node]['SaysRed']:
+        red_score+=terrorist_graph.node[n]["EstHonRed"]
+
+    for n in terrorist_graph.node[node]['SaysBlue']:
+        blue_score+=terrorist_graph.node[n]["EstHonBlue"]
 
 
-    return {"redscore":red_score,"bluescore":blue_score,"confred":conf_red,"confblue":conf_blue}
+
+    conf_red=1.0*red_score/(red_score+blue_score)
+
+
+    return {"redscore":red_score,"bluescore":blue_score,"confred":conf_red,"confblue":1-conf_red}
 
 def get_color_score_2(terrorist_graph,node):
     red_score=0
@@ -229,45 +265,23 @@ def get_color_score_2(terrorist_graph,node):
     for n in terrorist_graph.node[node]['SaysBlue']:
         blue_score+=terrorist_graph.node[n]["EstHonBlue"]
 
-    conf_red=0.0001
-    conf_blue=0.0001
-    if len(terrorist_graph.node[node]['SaysRed'])>0:
-        conf_red=1.0*red_score/len(terrorist_graph.node[node]['SaysRed'])
-    if len(terrorist_graph.node[node]['SaysBlue'])>0:
-        conf_blue=1.0*blue_score/len(terrorist_graph.node[node]['SaysBlue'])
-
-    return {"redscore":red_score,"bluescore":blue_score,"confred":conf_red,"confblue":conf_blue}
-
-def get_color_score_3(terrorist_graph,node):
-    red_score=0
-    blue_score=0
-    max_red_hon=0
-    max_blue_hon=0
-    for n in terrorist_graph.node[node]['SaysRed']:
-        red_score+=terrorist_graph.node[n]["EstHonRed"]
-
-        if terrorist_graph.node[n]["EstHonRed"] >max_red_hon:
-            max_red_hon=terrorist_graph.node[n]["EstHonRed"]
-
-    for n in terrorist_graph.node[node]['SaysBlue']:
-        blue_score+=terrorist_graph.node[n]["EstHonBlue"]
-
-        if terrorist_graph.node[n]["EstHonBlue"] >max_blue_hon:
-            max_blue_hon=terrorist_graph.node[n]["EstHonBlue"]
-
-    conf_red=max_red_hon
-    conf_blue=max_blue_hon
-
-    return {"redscore":red_score,"bluescore":blue_score,"confred":conf_red,"confblue":conf_blue}
 
 
-def select_random_monitor(terrorist_graph):
+    conf_red=1.0*red_score/(red_score+blue_score)
+
+
+    return {"redscore":red_score,"confred":conf_red,"confblue":1-conf_red}
+
+
+
+def select_random_monitor(terrorist_graph,global_parameters):
 
     return np.random.choice([node for node in terrorist_graph if terrorist_graph.node[node]["Discovered"]==True and terrorist_graph.node[node]["IsMonitor"]==False ])
 
-def select_next_monitor_most_red_neighbors(terrorist_graph):
+def select_next_monitor_most_red_neighbors(terrorist_graph,global_parameters):
     max_red_score=0
-    next_node=np.random.choice([node for node in terrorist_graph if terrorist_graph.node[node]["Discovered"]==True and terrorist_graph.node[node]["IsMonitor"]==False ])
+    nodes_with_max_score=[]
+    #next_node=np.random.choice([node for node in terrorist_graph if terrorist_graph.node[node]["Discovered"]==True and terrorist_graph.node[node]["IsMonitor"]==False ])
     for node in terrorist_graph:
         if not terrorist_graph.node[node]["IsMonitor"] and terrorist_graph.node[node]["Discovered"]==True:
             red_score=0
@@ -276,68 +290,244 @@ def select_next_monitor_most_red_neighbors(terrorist_graph):
             for neighbor in terrorist_graph.neighbors(node):
                 if terrorist_graph.node[neighbor]["color"]=="Red":
                     red_score+=1
-            if red_score>max_red_score:
+            if red_score>=max_red_score:
+                if red_score > max_red_score:
+                    nodes_with_max_score=[]
                 max_red_score=red_score
-                next_node=node
+                nodes_with_max_score.append(node)
+                #next_node=node
+    if global_parameters!=None and len(nodes_with_max_score)>1:
 
+        next_node=break_ties(nodes_with_max_score,terrorist_graph,global_parameters)
+
+    else:
+        next_node=np.random.choice(nodes_with_max_score)
     return next_node
 
-def select_next_monitor_most_red_says_red(terrorist_graph):
+def break_ties(nodes_with_max_score,terrorist_graph,global_parameters):
+
+
+
+    max_prob_red=0
+    next=np.random.choice(nodes_with_max_score)
+
+    for node in nodes_with_max_score:
+        sum_prob_red=0
+        count=0
+
+
+        for n_r in terrorist_graph.node[node]["SaysRed"]:
+            if terrorist_graph.node[n_r]["color"]=="Red":
+
+                sum_prob_red+=global_parameters["p_red_ured_saysred"]
+                count+=1
+            else:
+                sum_prob_red+=global_parameters["p_red_ublue_saysred"]
+                count+=1
+        for n_b in terrorist_graph.node[node]["SaysBlue"]:
+             if terrorist_graph.node[n_b]["color"]=="Red":
+                sum_prob_red+=global_parameters["p_red_ured_saysblue"]
+                count+=1
+             else:
+                sum_prob_red+=global_parameters["p_red_ublue_saysblue"]
+                count+=1
+        prob_red=sum_prob_red/count
+
+        if max_prob_red<prob_red:
+
+            max_prob_red=prob_red
+            next=node
+
+
+    return next
+
+
+
+
+def select_next_monitor_most_red_says_red(terrorist_graph,global_parameters):
     max_red_score=0
-    next_node=np.random.choice([node for node in terrorist_graph if terrorist_graph.node[node]["Discovered"]==True and terrorist_graph.node[node]["IsMonitor"]==False ])
+    nodes_with_max_score=[]
+#    next_node=np.random.choice([node for node in terrorist_graph if terrorist_graph.node[node]["Discovered"]==True and terrorist_graph.node[node]["IsMonitor"]==False ])
     for node in terrorist_graph:
-        if not terrorist_graph.node[node]["IsMonitor"] and terrorist_graph.node[node]["Discovered"]==True:
+        if not terrorist_graph.node[node]["IsMonitor"] :#and terrorist_graph.node[node]["Discovered"]==True:
             red_score=0
             says_red=terrorist_graph.node[node]["SaysRed"]
 
             for neighbor in says_red:
                 if terrorist_graph.node[neighbor]["color"]=="Red":
                     red_score+=1
-            if red_score>max_red_score:
-                max_red_score=red_score
-                next_node=node
+            if red_score>=max_red_score:
+                if red_score>max_red_score:
+                    nodes_with_max_score=[]
 
-    #print max_red_score
+                max_red_score=red_score
+                nodes_with_max_score.append(node)
+
+    if global_parameters!=None and len(nodes_with_max_score)>1:
+        next_node=break_ties(nodes_with_max_score,terrorist_graph,global_parameters)
+
+    else:
+        try:
+            next_node=np.random.choice(nodes_with_max_score)
+        except:
+            draw_network(terrorist_graph)
+
     return next_node
 
-def select_next_monitor_highest_estimated_red_score(terrorist_graph,color_score_function=get_color_score_2):
+
+
+def select_next_monitor_highest_estimated_red_score(terrorist_graph,global_parameters,color_score_function=get_color_score_2):
+
+    max_red_score=0
+
+    nodes_with_max_score=[]
+    #next_node=np.random.choice([node for node in terrorist_graph if terrorist_graph.node[node]["Discovered"]==True and terrorist_graph.node[node]["IsMonitor"]==False ])
+    for node in terrorist_graph:
+        if not terrorist_graph.node[node]["IsMonitor"] and terrorist_graph.node[node]["Discovered"]==True:
+            results=color_score_function(terrorist_graph,node)
+            red_score=results["redscore"]
+            if red_score>=max_red_score:
+                if red_score > max_red_score:
+                    nodes_with_max_score=[]
+                max_red_score=red_score
+                nodes_with_max_score.append(node)
+                #next_node=node
+    if global_parameters!=None and len(nodes_with_max_score)>1:
+        next_node=break_ties(nodes_with_max_score,terrorist_graph,global_parameters)
+
+    else:
+        next_node=np.random.choice(nodes_with_max_score)
+
+
+    return next_node
+
+def select_next_monitor_red_score_global_prob(terrorist_graph,global_parameters):
+
+
+    max_red_score=0
+
+    nodes_with_max_score=[]
+    next_node=np.random.choice([node for node in terrorist_graph if terrorist_graph.node[node]["Discovered"]==True and terrorist_graph.node[node]["IsMonitor"]==False ])
+    if global_parameters!=None:
+        for node in terrorist_graph:
+            if not terrorist_graph.node[node]["IsMonitor"] and terrorist_graph.node[node]["Discovered"]==True:
+
+                count=0
+                sum_prob_red=0
+
+
+                for n_r in terrorist_graph.node[node]["SaysRed"]:
+                    if terrorist_graph.node[n_r]["color"]=="Red":
+                        sum_prob_red+=global_parameters["p_red_ured_saysred"]
+                        count+=1
+                    else:
+                        sum_prob_red+=global_parameters["p_red_ublue_saysred"]
+                        count+=1
+                if count>0:
+                    red_score=sum_prob_red*1.0/count
+                else:
+                    red_score=0
+                if red_score>=max_red_score:
+                    if red_score > max_red_score:
+                        nodes_with_max_score=[]
+                    max_red_score=red_score
+                    nodes_with_max_score.append(node)
+                #next_node=node
+    if global_parameters!=None and len(nodes_with_max_score)>1:
+        next_node=break_ties(nodes_with_max_score,terrorist_graph,global_parameters)
+
+    elif len(nodes_with_max_score) >1:
+        next_node=np.random.choice(nodes_with_max_score)
+
+
+    return next_node
+def select_next_monitor_tie_break(terrorist_graph,global_parameters):
+    max_red_score=0
+
+    nodes_with_max_score=[]
+    #next_node=np.random.choice([node for node in terrorist_graph if terrorist_graph.node[node]["Discovered"]==True and terrorist_graph.node[node]["IsMonitor"]==False ])
+    for node in terrorist_graph:
+        if not terrorist_graph.node[node]["IsMonitor"] and terrorist_graph.node[node]["Discovered"]==True:
+
+            red_score=0
+            if red_score>=max_red_score:
+                if red_score > max_red_score:
+                    nodes_with_max_score=[]
+                max_red_score=red_score
+                nodes_with_max_score.append(node)
+                #next_node=node
+    if global_parameters!=None and len(nodes_with_max_score)>1:
+        next_node=break_ties(nodes_with_max_score,terrorist_graph,global_parameters)
+
+    else:
+        next_node=np.random.choice(nodes_with_max_score)
+    return next_node
+def select_next_monitor_most_red_triangles(terrorist_graph):
+
+    max_triangles=0
+    #next_node=np.random.choice([node for node in terrorist_graph if terrorist_graph.node[node]["Discovered"]==True and terrorist_graph.node[node]["IsMonitor"]==False ])
+
+    for node in terrorist_graph:
+        if not terrorist_graph.node[node]["IsMonitor"] and terrorist_graph.node[node]["Discovered"]==True:
+            ego_graph=nx.ego_graph(terrorist_graph,node)
+            ego_graph.remove_nodes_from([n for n in ego_graph if ego_graph.node[n]['color']=="Blue"])
+
+            no_triangles=nx.triangles(ego_graph,node)
+
+            if no_triangles>max_triangles:
+                max_triangles=no_triangles
+                next_node=node
+    if max_triangles==0:
+        node=select_next_monitor_most_red_neighbors(terrorist_graph)
+    return node
+
+
+
+
+def redscore_red_neighbors(terrorist_graph,color_score_function=get_color_score_2):
 
     max_red_score=0
     max_conf=0
     next_node=np.random.choice([node for node in terrorist_graph if terrorist_graph.node[node]["Discovered"]==True and terrorist_graph.node[node]["IsMonitor"]==False ])
     for node in terrorist_graph:
         if not terrorist_graph.node[node]["IsMonitor"] and terrorist_graph.node[node]["Discovered"]==True:
+            red_neighbors=0
             results=color_score_function(terrorist_graph,node)
-            rscore=results["redscore"]
+            rscore_1=results["redscore"]
+
+            for neighbor in terrorist_graph.neighbors(node):
+                if terrorist_graph.node[neighbor]["color"]=="Red":
+                    red_neighbors+=1
+            rscore=(rscore_1*red_neighbors)
             if rscore>max_red_score:
                 max_red_score=rscore
                 next_node=node
-
-
     return next_node
+def estimated_honesty_recursive(terrorist_graph,color_score_function,start_node):
 
 
-
-
-def estimated_honesty_recursive(terrorist_graph,color_score_function):
-
-    color_changed=True
     confidence_changed=True
+    it_limit=20
     iterations=0
 
     last_10_conf={node:{"Red":[],"Blue":[]} for node in terrorist_graph.nodes()}
-    last_10_colors={node:[] for node in terrorist_graph.nodes()}
 
     last_10_honesty_blue={node:[] for node in terrorist_graph.nodes()}
     last_10_honesty_red={node:[] for node in terrorist_graph.nodes()}
-    while (color_changed or confidence_changed) and iterations<100:
 
 
-        color_changed=False
+    #affected_nodes=nx.single_source_shortest_path_length(terrorist_graph, start_node, cutoff=4).keys()
+    #affected_nodes.append(start_node)
+
+    affected_nodes=terrorist_graph.nodes()
+    while (confidence_changed) and iterations<it_limit:
+
+
+
         confidence_changed=False
         iterations+=1
 
-        for node in terrorist_graph:
+        for node in affected_nodes:
 
             if not terrorist_graph.node[node]["IsMonitor"]:
 
@@ -346,87 +536,69 @@ def estimated_honesty_recursive(terrorist_graph,color_score_function):
 
 
                     results=color_score_function(terrorist_graph,node)
-                    red_score=results["redscore"]
-                    blue_score=results["bluescore"]
+
                     confidence_red=results["confred"]
                     confidence_blue=results["confblue"]
 
 
 
 
-                    if red_score>blue_score:
-                        if terrorist_graph.node[node]["EstColor"][0]!="Red":
-                            color_changed=True
 
-                            terrorist_graph.node[node]["EstColor"]=["Red",confidence_red]
 
-                        elif terrorist_graph.node[node]["EstColor"][1]!=confidence_red:
-                            if abs(confidence_red-terrorist_graph.node[node]["EstColor"][1] )>0.1:
-                                confidence_changed=True
-                                terrorist_graph.node[node]["EstColor"]=["Red",confidence_red]
-                        if len(last_10_colors[node]) >=10:
-                            last_10_colors[node].pop()
-                            last_10_colors[node].append("Red")
-                        else:
-                            last_10_colors[node].append("Red")
-                        if len(last_10_conf[node]["Red"]) >=10:
 
-                            last_10_conf[node]["Red"].pop()
-                            last_10_conf[node]["Red"].append(confidence_red)
-                        else:
-                            last_10_conf[node]["Red"].append(confidence_red)
+                    if terrorist_graph.node[node]["EstColor"]["Red"]!=confidence_red:
 
-                    else:
-
-                        if terrorist_graph.node[node]["EstColor"][0]!="Blue":
-                            color_changed=True
+                        if abs(confidence_red-terrorist_graph.node[node]["EstColor"]["Red"] )>0.01:
                             confidence_changed=True
+                            terrorist_graph.node[node]["EstColor"]["Red"]=confidence_red
 
-                            terrorist_graph.node[node]["EstColor"]=["Blue",confidence_blue]
+                    if len(last_10_conf[node]["Red"]) >=10:
 
-                        elif terrorist_graph.node[node]["EstColor"][1]!=confidence_blue:
-                            if abs(confidence_blue-terrorist_graph.node[node]["EstColor"][1]) >0.1:
+                        last_10_conf[node]["Red"].pop()
+                        last_10_conf[node]["Red"].append(confidence_red)
+                    else:
+                        last_10_conf[node]["Red"].append(confidence_red)
 
-                                confidence_changed=True
-                                terrorist_graph.node[node]["EstColor"]=["Blue",confidence_blue]
-                        if len(last_10_colors[node]) >=10:
-                            last_10_colors[node].pop()
-                            last_10_colors[node].append("Blue")
-                        else:
-                            last_10_colors[node].append("Blue")
-                        if len(last_10_conf[node]["Blue"]) >=10:
 
-                            last_10_conf[node]["Blue"].pop()
-                            last_10_conf[node]["Blue"].append(confidence_blue)
-                        else:
-                            last_10_conf[node]["Blue"].append(confidence_blue)
 
-        for nn in terrorist_graph:
+
+                    if terrorist_graph.node[node]["EstColor"]["Blue"]!=confidence_blue:
+                        if abs(confidence_blue-terrorist_graph.node[node]["EstColor"]["Blue"]) >0.01:
+
+                            confidence_changed=True
+                            terrorist_graph.node[node]["EstColor"]["Blue"]=confidence_blue
+
+                    if len(last_10_conf[node]["Blue"]) >=10:
+
+                        last_10_conf[node]["Blue"].pop()
+                        last_10_conf[node]["Blue"].append(confidence_blue)
+                    else:
+                        last_10_conf[node]["Blue"].append(confidence_blue)
+
+        for nn in affected_nodes:
             if terrorist_graph.node[nn]["IsMonitor"]:
                 discovered_red_neighbors=[n for n in terrorist_graph.neighbors(nn) if terrorist_graph.node[n]['color']=="Red"]
                 red_neighbors_said_red=[n for n in discovered_red_neighbors if nn in terrorist_graph.node[n]["SaysRed"]]
                 discovered_blue_neighbors=[n for n in terrorist_graph.neighbors(nn) if terrorist_graph.node[n]['color']=="Blue"]
                 blue_neighbors_said_blue=[n for n in discovered_blue_neighbors if nn in terrorist_graph.node[n]["SaysBlue"]]
 
-                estimated_blue_neighbors=[n for n in terrorist_graph.neighbors(nn) if not terrorist_graph.node[n]["IsMonitor"] and terrorist_graph.node[n]["EstColor"][0]=="Blue"]
-                est_blue_says_blue=[n for n in estimated_blue_neighbors if nn in terrorist_graph.node[n]["SaysBlue"]]
-                estimated_red_neighbors=[n for n in terrorist_graph.neighbors(nn) if not terrorist_graph.node[n]["IsMonitor"] and terrorist_graph.node[n]["EstColor"][0]=="Red"]
-                est_red_says_red=[n for n in estimated_red_neighbors if nn in terrorist_graph.node[n]["SaysRed"]]
+                neighbors=[n for n in terrorist_graph.neighbors(nn) if not terrorist_graph.node[n]["IsMonitor"] and terrorist_graph.node[n]["Discovered"]==True]
+                blue_says_blue=[n for n in neighbors if nn in terrorist_graph.node[n]["SaysBlue"]]
+                red_says_red=[n for n in neighbors if nn in terrorist_graph.node[n]["SaysRed"]]
 
 
                 est_color_hon_red=0
                 est_color_hon_blue=0
 
 
-                if len(discovered_red_neighbors) >0 or len(estimated_red_neighbors)>0:
+                if len(discovered_red_neighbors) >0 or sum([terrorist_graph.node[n]["EstColor"]["Red"] for n in neighbors ])>0:
 
-                    est_color_hon_red=(len(red_neighbors_said_red)+sum([terrorist_graph.node[n]["EstColor"][1] for n in est_red_says_red ]))/(len(discovered_red_neighbors)+len([terrorist_graph.node[n]["EstColor"][1] for n in estimated_red_neighbors ]))
+                    est_color_hon_red=(len(red_neighbors_said_red)+sum([terrorist_graph.node[n]["EstColor"]["Red"] for n in red_says_red ]))/(len(discovered_red_neighbors)+sum([terrorist_graph.node[n]["EstColor"]["Red"] for n in neighbors ]))
 
 
-                if len(discovered_blue_neighbors) >0 or len(estimated_blue_neighbors) >0:
-                    #prob_true_blue=1.0*len(discovered_blue_neighbors)/(len(discovered_blue_neighbors)+len(estimated_blue_neighbors))
+                if len(discovered_blue_neighbors) >0 or sum([terrorist_graph.node[n]["EstColor"]["Blue"] for n in neighbors ]) >0:
 
-                    est_color_hon_blue=(len(blue_neighbors_said_blue)+sum([terrorist_graph.node[n]["EstColor"][1] for n in est_blue_says_blue ]))/(len(discovered_blue_neighbors)+len([terrorist_graph.node[n]["EstColor"][1] for n in estimated_blue_neighbors ]))
+                    est_color_hon_blue=(len(blue_neighbors_said_blue)+sum([terrorist_graph.node[n]["EstColor"]["Blue"] for n in blue_says_blue ]))/(len(discovered_blue_neighbors)+sum([terrorist_graph.node[n]["EstColor"]["Blue"] for n in neighbors ]))
 
                 if est_color_hon_blue>0:
                     terrorist_graph.node[nn]["EstHonBlue"]=est_color_hon_blue
@@ -446,181 +618,373 @@ def estimated_honesty_recursive(terrorist_graph,color_score_function):
 
 
 
-    if iterations==100:
-        for n in terrorist_graph:
+    if iterations==it_limit:
+        for n in affected_nodes:
             if terrorist_graph.node[n]["IsMonitor"]:
                 if len(last_10_honesty_blue[n]) >0:
                     terrorist_graph.node[n]["EstHonBlue"]=np.mean(last_10_honesty_blue[n])
                 if len(last_10_honesty_red[n])>0:
                     terrorist_graph.node[n]["EstHonRed"]=np.mean(last_10_honesty_red[n])
             if not terrorist_graph.node[n]["IsMonitor"] and terrorist_graph.node[n]["Discovered"] :
-                if len(last_10_colors) >0:
 
-                    from collections import Counter
-                    data = Counter(last_10_colors[n])
-                    color=data.most_common(1)[0][0]
 
-                    conf=np.mean(last_10_conf[n][color])
 
-                    terrorist_graph.node[n]["EstColor"]=[color,conf]
+                    conf_blue=np.mean(last_10_conf[n]["Blue"])
+                    conf_red=np.mean(last_10_conf[n]["Red"])
 
+                    terrorist_graph.node[n]["EstColor"]["Blue"]=conf_blue
+                    terrorist_graph.node[n]["EstColor"]["Red"]=conf_red
+
+def get_global_parameters(terrorist_graph):
+    red_ured_saysred=0
+    blue_ured_saysred=0
+    red_ured_saysblue=0
+    blue_ured_saysblue=0
+    red_ublue_saysred=0
+    blue_ublue_saysred=0
+    red_ublue_saysblue=0
+    blue_ublue_saysblue=0
+
+    p_red_ured_saysred=0
+    p_blue_ured_saysred=0
+    p_red_ured_saysblue=0
+    p_blue_ured_saysblue=0
+    p_red_ublue_saysred=0
+    p_blue_ublue_saysred=0
+    p_red_ublue_saysblue=0
+    p_blue_ublue_saysblue=0
+
+    for node in [n for n in terrorist_graph.nodes() if terrorist_graph.node[n]['IsMonitor']==True] :
+        if terrorist_graph.node[node]['color']=="Red":
+            for n_red in terrorist_graph.node[node]["SaysRed"]:
+                if terrorist_graph.node[n_red]["color"]=="Red":
+                    red_ured_saysred+=1
+                else:
+                    red_ublue_saysred+=1
+            for n_blue in terrorist_graph.node[node]["SaysBlue"]:
+                if terrorist_graph.node[n_blue]["color"]=="Red":
+                    red_ured_saysblue+=1
+                else:
+                    red_ublue_saysblue+=1
+        else:
+            for n_red in terrorist_graph.node[node]["SaysRed"]:
+                if terrorist_graph.node[n_red]["color"]=="Red":
+                    blue_ured_saysred+=1
+                else:
+                    blue_ublue_saysred+=1
+            for n_blue in terrorist_graph.node[node]["SaysBlue"]:
+                if terrorist_graph.node[n_blue]["color"]=="Red":
+                    blue_ured_saysblue+=1
+                else:
+                    blue_ublue_saysblue+=1
+    if red_ured_saysred+blue_ured_saysred>0:
+        p_red_ured_saysred=1.0*red_ured_saysred/(red_ured_saysred+blue_ured_saysred)
+        p_blue_ured_saysred=1.0*blue_ured_saysred/(red_ured_saysred+blue_ured_saysred)
+    if red_ured_saysblue+blue_ured_saysblue>0:
+        p_red_ured_saysblue=1.0*red_ured_saysblue/(red_ured_saysblue+blue_ured_saysblue)
+        p_blue_ured_saysblue=1.0*blue_ured_saysblue/(red_ured_saysblue+blue_ured_saysblue)
+    if red_ublue_saysred+blue_ublue_saysred>0:
+        p_red_ublue_saysred=1.0*red_ublue_saysred/(red_ublue_saysred+blue_ublue_saysred)
+        p_blue_ublue_saysred=1.0*blue_ublue_saysred/(red_ublue_saysred+blue_ublue_saysred)
+    if red_ublue_saysblue+blue_ublue_saysblue>0:
+        p_red_ublue_saysblue=1.0*red_ublue_saysblue/(red_ublue_saysblue+blue_ublue_saysblue)
+        p_blue_ublue_saysblue=1.0*blue_ublue_saysblue/(red_ublue_saysblue+blue_ublue_saysblue)
+
+    return {"p_red_ured_saysred":p_red_ured_saysred,
+            "p_blue_ured_saysred":p_blue_ured_saysred,
+            "p_red_ured_saysblue":p_red_ured_saysblue,
+            "p_blue_ured_saysblue":p_blue_ured_saysblue,
+            "p_red_ublue_saysred":p_red_ublue_saysred,
+            "p_blue_ublue_saysred":p_blue_ublue_saysred,
+            "p_red_ublue_saysblue":p_red_ublue_saysblue,
+            "p_blue_ublue_saysblue":p_blue_ublue_saysblue}
+
+
+
+
+
+def learning_model(predict_model,training_set,predict_set):
+    max_red_prb=0
+    if len(training_set)%10==0:
+        x=[]
+        y=[]
+        for n in training_set:
+            x.append(training_set[n][:7])
+
+            y.append(training_set[n][7])
+        predict_model = linear_model.LogisticRegression(C=1e5)
+
+
+        #predict_model.fit(x,y)
+        #ranfor=RandomForestClassifier(n_estimators=100)
+
+
+
+
+
+        predict_model.fit(x[:3*len(x)/4], y[:3*len(x)/4])
+        predictions=predict_model.predict(x[3*len(x)/4:])
+        prob=predict_model.predict_proba(x[3*len(x)/4:])
+        true_class=y[3*len(x)/4:]
+        print predictions
+        print true_class
+        print prob
+        #print precision_recall_fscore_support(true_class,predictions)
+        # ranfor.fit(x[:3*len(x)/4], y[:3*len(x)/4])
+        # print len(x)
+        print ("log",predict_model.score(x[3*len(x)/4:],y[3*len(x)/4:]))
+        # print ("ran",ranfor.score(x[3*len(x)/4:],y[3*len(x)/4:]))
+        #print logreg.feature_importances_
+
+    next=np.random.choice(predict_set.keys())
+    probs_array=predict_model.predict_proba(predict_set.values())
+
+    for node in predict_set.keys():
+        i=0
+        probs=probs_array[i]
+        i+=1
+        red_prob=probs[1]
+        blue_prob=probs[0]
+
+        if blue_prob <red_prob:
+
+            if red_prob>max_red_prb:
+                max_red_prb=red_prob
+                next=node
+
+    return predict_model,next
+
+
+def update_features(selected_node,terrorist_graph,training,predict):
+    training[selected_node]=predict[selected_node]
+    if terrorist_graph.node[selected_node]['color']=="Red":
+        training[selected_node].append(1.0)
+    else:
+        training[selected_node].append(0.0)
+    no_red_neighbors=len([n for n in terrorist_graph.neighbors(selected_node) if terrorist_graph.node[n]["color"]=="Red"])
+    no_blue_neighbors=len([n for n in terrorist_graph.neighbors(selected_node) if terrorist_graph.node[n]["color"]=="Blue"])
+    unknown_neighbors=len([n for n in terrorist_graph.neighbors(selected_node) if terrorist_graph.node[n]["color"]!="Blue" and terrorist_graph.node[n]["color"]!="Red"] )
+    for neighbor in terrorist_graph.neighbors(selected_node):
+        if neighbor not in predict.keys():
+            predict[neighbor]=[0,0,0,0,0,0,0]
+
+        if terrorist_graph.node[selected_node]['color']=="Red":
+            predict[neighbor][0]+=1
+        else:
+            predict[neighbor][1]+=1
+
+        predict[neighbor][2]+=no_red_neighbors
+        predict[neighbor][3]+=no_blue_neighbors
+        #predict[neighbor][4]+=unknown_neighbors
+        predict[neighbor][5]=len(terrorist_graph.node[neighbor]["SaysRed"])
+        predict[neighbor][6]=len(terrorist_graph.node[neighbor]["SaysBlue"])
+    del predict[selected_node]
+    return training,predict
 
 
 
 
 def evaluate_model_monitor(terrorist_graph):
     red_found=0
+
     for node in terrorist_graph:
         if terrorist_graph.node[node]["IsMonitor"] and terrorist_graph.node[node]["color"]=="Red":
             red_found+=1
 
+
     return red_found
+def assign_color_I_say(lying_strategy,G):
+    all_neighbor_colors={}
+    for node in G.nodes():
+        colors=lying_strategy(G,node)
+        all_neighbor_colors[node]=colors
+    return all_neighbor_colors
+
+
 
 def initialize_terrorist_graph(terrorist_graph):
     nx.set_node_attributes(terrorist_graph, 'SaysBlue', {node:[] for node in terrorist_graph.nodes()})
     nx.set_node_attributes(terrorist_graph, 'SaysRed', {node:[] for node in terrorist_graph.nodes()})
     nx.set_node_attributes(terrorist_graph, 'IsMonitor', {node:False for node in terrorist_graph.nodes()})
     nx.set_node_attributes(terrorist_graph, 'color', {node:"Black" for node in terrorist_graph.nodes()})
-    nx.set_node_attributes(terrorist_graph, 'EstColor', {node:["Black",0] for node in terrorist_graph.nodes()})
+    nx.set_node_attributes(terrorist_graph, 'EstColor', {node:{"Blue":0.000001,"Red":0.000001} for node in terrorist_graph.nodes()})
     nx.set_node_attributes(terrorist_graph, 'Discovered', {node:False for node in terrorist_graph.nodes()})
     nx.set_node_attributes(terrorist_graph, 'EstHonRed', {node:0.5 for node in terrorist_graph.nodes()})
     nx.set_node_attributes(terrorist_graph, 'EstHonBlue', {node:0.5 for node in terrorist_graph.nodes()})
 
+def initialize_node(terrorist_graph,n):
+    terrorist_graph.add_node(n)
+    terrorist_graph.node[n]["SaysBlue"]=[]
+    terrorist_graph.node[n]["SaysRed"]=[]
+    terrorist_graph.node[n]["IsMonitor"]=False
+    terrorist_graph.node[n]["Discovered"]=True
+    terrorist_graph.node[n]["EstHonRed"]=0.5
+    terrorist_graph.node[n]["EstHonBlue"]=0.5
+    terrorist_graph.node[n]["color"]="Black"
+    terrorist_graph.node[n]["EstColor"]={"Blue":0.000001,"Red":0.000001}
 
 
-def draw_plots(all_performance,budgets,plot_name):
+
+
+def draw_plots(performance,budgets,plot_name):
 
     #for s in lying_strategies.keys():
-        for k in all_performance.keys():
-            performance=all_performance[k]
-            for monitor_placement in performance.keys():
 
-                    average_per=[np.mean(performance[monitor_placement][budget]) for budget in sorted(budgets)]
-                    std_perform=[np.std(performance[monitor_placement][budget]) for budget in sorted(budgets)]
+        data=[]
+        header=[]
+        header.append("budget")
+        for monitor_placement in sorted(performance.keys()):
+            header.append("Average "+monitor_placement)
+            header.append("STD "+monitor_placement)
+        data.append(header)
 
-                    plt.plot(sorted(budgets),average_per,label=monitor_placement)
+        for budget in sorted(budgets):
 
-                    print monitor_placement
-                    print average_per
-                    print std_perform
+            vals=[budget]
 
 
-        plt.legend(loc=4)
+            for monitor_placement in sorted(performance.keys()):
+                        avg=np.mean(performance[monitor_placement][budget])
+                        vals.append(avg)
+                        std=np.std(performance[monitor_placement][budget])
+                        vals.append(std)
 
-        #plt.legend()
-        plt.ylabel('# of Red Found')
-        plt.xlabel('# of Monitors')
-        plt.title(plot_name)
-        plt.savefig(plot_name)
-        plt.show()
+            data.append(vals)
 
-def simulate_lying_monitor(G):
 
-    color_score_functions=[get_color_score_2]
-    with_honesty_values=["True","False"]
-    lying_strategies={"strategy-1":get_neighbor_colors_setting1 ,"strategy-2":get_neighbor_colors_setting2,"strategy-3":get_neighbor_colors_setting3}
-    next_monitor={"Most red neighbors":select_next_monitor_most_red_neighbors,"Highest red score":select_next_monitor_highest_estimated_red_score,"Most red says red":select_next_monitor_most_red_says_red,"Random monitor":select_random_monitor}
 
-    budgets=[i for i in range(5,30,5)]
-    all_performance={}
+
+        with open("plots/"+plot_name+".csv","wb") as f:
+            csv_writer=csv.writer(f)
+            csv_writer.writerows(data)
+
+
+
+        #
+        #         plt.plot(sorted(budgets),average_per,label=monitor_placement)
+        #
+        #         print monitor_placement
+        #         print average_per
+        #         print std_perform
+        #
+        #
+        # plt.legend(loc=4)
+        #
+        # #plt.legend()
+        # plt.ylabel('# of Red Found')
+        # plt.xlabel('# of Monitors')
+        # plt.ylim((1,no_red))
+        # plt.title(plot_name)
+        # plt.savefig("plots/"+plot_name)
+        # plt.show()
+
+def simulate_lying_monitor(G_1,name):
+
+
+    lying_strategies={"strategy-2":get_neighbor_colors_setting2,
+                      "strategy-3":get_neighbor_colors_setting3,
+                      "strategy-1":get_neighbor_colors_setting1}
+    next_monitor={"Most red neighbors":select_next_monitor_most_red_neighbors,
+                  "tie breaking red neighbors":select_next_monitor_most_red_neighbors,
+                  "tie breaking highest score":select_next_monitor_highest_estimated_red_score,
+                  "Highest red score":select_next_monitor_highest_estimated_red_score,
+                  "Most red says red":select_next_monitor_most_red_says_red,
+                  "Random monitor":select_random_monitor
+                  }
+                  #"Highest red score with est. Honesty":select_next_monitor_highest_estimated_red_score}
+                  #"redscore_red_neigh":redscore_red_neighbors}
+                  #"Est red neignbors with est hon":select_next_monitor_estimated_red_neighbors,
+                  #"Est red neignbors score":select_next_monitor_estimated_red_neighbors_score}
+    #next_monitor={"Highest red score":select_next_monitor_highest_estimated_red_score,}
+
+    #"strategy-2":get_neighbor_colors_setting2, ,"strategy-3":get_neighbor_colors_setting3
+    G=assign_centrality(G_1)
+    red_nodes=[node for node in G.nodes() if G.node[node]['color']=="Red"]
+    print len(red_nodes)
+
+    #budgets=[i for i in range(len(red_nodes),6*len(red_nodes),len(red_nodes))]
+    budgets=[]
+    budgets.append(len(G.nodes())/100)
+    budgets.extend([len(G.nodes())*i/100 for i in range(10,60,10)])
+
+    print budgets
+
 
 
     for strategy_name in lying_strategies.keys():
 
 
-        #for with_honesty in with_honesty_values:
-        with_honesty="False"
-        for color_score_func in color_score_functions:
                 performance={}
-
+                color_score_func=get_color_score_2
+                all_red_found={}
 
                 for monitor_placement in next_monitor.keys():
                     performance[monitor_placement]={}
+                    all_red_found[monitor_placement]=[]
                     for b in budgets:
                         performance[monitor_placement][b]=[]
 
 
-                print with_honesty
 
-                for i in range(0,100):
+
+                for i in range(0,10):
                     print ("Big I", i)
-                    assign_centrality(G,nx.degree_centrality)
-                    assign_honesty(G)
-                    assign_colors(G_1)
-                    red_nodes=[node for node in G.nodes() if G.node[node]['color']=="Red"]
 
-                    no_runs=100
+                    assign_honesty(G)
+                    #assign_colors(G)
+
+
+                    global no_red
+                    no_red=len(red_nodes)
+                    no_runs=10
                     for j in range(0,no_runs):
+
                         start_node=np.random.choice(red_nodes)
+                        while len(G.neighbors(start_node))==0:
+                            start_node=np.random.choice(red_nodes)
+                        all_neighbor_colors=assign_color_I_say(lying_strategies[strategy_name],G)
+
 
                         for next_monitor_placement in next_monitor.keys():
-                            # if next_monitor=="Highest red score":
-                            #     with_honesty="True"
-                            for b in budgets:
-
-                                terrorist_graph=nx.Graph()
-                                terrorist_graph.add_nodes_from(G.nodes())
-                                initialize_terrorist_graph(terrorist_graph)
 
 
+                                for b in budgets:
 
-                                selected_node=start_node
+                                    global_parameters=None
+                                    terrorist_graph=nx.Graph()
 
-                                budget=copy.deepcopy(b)
-
-                                while budget>0:
-
-
-                                    terrorist_graph.node[selected_node]["IsMonitor"]=True
-                                    terrorist_graph.node[selected_node]['color']=G.node[selected_node]['color']
-                                    terrorist_graph.node[selected_node]['Discovered']=True
-
-
-
-                                    for edge in G.edges(selected_node):
-
-                                        terrorist_graph.add_edge(edge[0],edge[1])
-
-
-
-                                    neighbor_colors=lying_strategies[strategy_name](G,selected_node)
-
-
-                                    for node in neighbor_colors:
-                                        terrorist_graph.node[node]["Discovered"]=True
-                                        if neighbor_colors[node]=="Red":
-                                            terrorist_graph.node[node]["SaysRed"].append(selected_node)
-                                        else:
-                                            terrorist_graph.node[node]["SaysBlue"].append(selected_node)
-
-                                    if with_honesty=="True" :
-                                        estimated_honesty_recursive(terrorist_graph,color_score_func)
-
-                                    selected_node=next_monitor[next_monitor_placement](terrorist_graph)
-                                    budget-=1
-
-
-
-                                evaluation=evaluate_model_monitor(terrorist_graph)
-                                performance[next_monitor_placement][b].append(evaluation)
+                                    selected_node=start_node
+                           
+                                    initialize_node(terrorist_graph,selected_node)
 
 
 
 
+                                    budget=copy.deepcopy(b)
+
+                                    no_monitors=0
+                                    while budget>0:
+                                        no_monitors+=1
+
+                                        terrorist_graph.node[selected_node]["IsMonitor"]=True
+                                        terrorist_graph.node[selected_node]['color']=G.node[selected_node]['color']
+                                        terrorist_graph.node[selected_node]['Discovered']=True
 
 
-                # if color_score_func==get_color_score_2:
-                #
-                #
-                #     all_performance["sum_honesty"]=performance
-                # elif color_score_func==get_color_score_3:
-                #     all_performance["max_honesty"]=performance
-                # else:
-                #     all_performance["naive_honesty"]=performance
-                all_performance["d"]=performance
+                                        #draw_network(terrorist_graph)
 
 
-        draw_plots(all_performance,budgets,strategy_name+" without honesty")
+                                        for edge in G.edges(selected_node):
+
+                                            if not terrorist_graph.has_node(edge[0]):
+
+                                                initialize_node(terrorist_graph,edge[0])
+
+                                            if not terrorist_graph.has_node(edge[1]):
+
+                                                initialize_node(terrorist_graph,edge[1])
+
+                                            terrorist_graph.add_edge(edge[0],edge[1])
 
 
 
@@ -628,15 +992,144 @@ def simulate_lying_monitor(G):
 
 
 
+                                        neighbor_colors=all_neighbor_colors[selected_node]
 
 
 
-G_1=nx.Graph(read_network_data_gexf("data//Noordin 14 Layers.gexf"))
+                                        for node in neighbor_colors:
+
+
+                                            if neighbor_colors[node]=="Red":
+                                                terrorist_graph.node[node]["SaysRed"].append(selected_node)
+                                            else:
+                                                terrorist_graph.node[node]["SaysBlue"].append(selected_node)
+
+                                        if no_monitors>10 and (next_monitor_placement=="tie breaking red neighbors" or next_monitor_placement=="tie breaking highest score") :
+
+                                            global_parameters=get_global_parameters(terrorist_graph)
+
+
+                                        if next_monitor_placement=="Highest red score with est. Honesty":
+
+                                            estimated_honesty_recursive(terrorist_graph,color_score_func,selected_node)
 
 
 
 
+                                        #else:
+                                        selected_node=next_monitor[next_monitor_placement](terrorist_graph,global_parameters)
+                                        budget-=1
 
-simulate_lying_monitor(G_1)
 
 
+                                    evaluation=evaluate_model_monitor(terrorist_graph)
+
+                                    all_red_found[next_monitor_placement].extend([G.node[n]["centrality"] for n in terrorist_graph if terrorist_graph.node[n]["color"]=="Red"])
+
+                                    performance[next_monitor_placement][b].append(evaluation)
+
+
+
+
+                for mplace in all_red_found.keys():
+                    print(mplace,np.mean(all_red_found[mplace]))
+
+
+                draw_plots(performance,budgets,strategy_name+"_"+name)
+
+
+
+def measure_homophily(G):
+
+    red_node_neighbors=[]
+    blue_node_neighbors=[]
+
+
+    for node in G.nodes():
+        blue_neigh=0
+        red_neigh=0
+        if len(G.neighbors(node))>0:
+            for neighb in G.neighbors(node):
+                if G.node[neighb]['color']=="Blue":
+                    blue_neigh+=1
+                if G.node[neighb]['color']=="Red":
+                    red_neigh+=1
+            if G.node[node]["color"]=="Blue":
+                blue_node_neighbors.append((blue_neigh,red_neigh))
+            else:
+                red_node_neighbors.append((blue_neigh,red_neigh))
+    red_red_percentage=0
+    red_blue_percentage=0
+
+    blue_blue_percentage=0
+    blue_red_percentage=0
+
+    for neighbor_stat in red_node_neighbors:
+        red_red_percentage+=neighbor_stat[1]*1.0/(neighbor_stat[1]+neighbor_stat[0])
+        red_blue_percentage+=neighbor_stat[0]*1.0/(neighbor_stat[1]+neighbor_stat[0])
+    print ("Red Red Prob",red_red_percentage/len(red_node_neighbors))
+    print ("Red_Blue_prob",red_blue_percentage/len(red_node_neighbors))
+
+    for neighbor_stat in blue_node_neighbors:
+        blue_red_percentage+=neighbor_stat[1]*1.0/(neighbor_stat[1]+neighbor_stat[0])
+        blue_blue_percentage+=neighbor_stat[0]*1.0/(neighbor_stat[1]+neighbor_stat[0])
+    print ("Blue blue Prob",blue_blue_percentage/len(blue_node_neighbors))
+    print ("Blue red prob",blue_red_percentage/len(blue_node_neighbors))
+
+
+
+
+def remove_red_edges(G):
+    remove=[]
+    for edge in G.edges():
+        if G.node[edge[0]]['color']=="Red" and G.node[edge[1]]['color']=="Red":
+            remove.append(edge)
+    G.remove_edges_from(remove)
+    return G
+
+
+#
+# G_1=assign_colors_noordin_8k(G_1)
+G_2=pickle.load(open("pokec_sampled//Pokec_kosicky_badminton"))
+
+
+# G_3=PokeC.assign_colors(G_2)
+# RandomWalk.save_object(G_3,"pokec_sampled///Pokec_10000_colored")
+# print G_2.nodes()
+#draw_network(G_1)
+
+#G_2=Noordin.get_noordin8k()
+#draw_network(G_2.subgraph([n for n in G_2.nodes() if G_2.node[n]['color']=="Red"]))
+
+
+
+#draw_network(G_2.subgraph([n for n in G_2.nodes() if G_2.node[n]['color']=="Red"]))
+# name="Noordin_new_l"
+#draw_network(nx.Graph(read_network_data_gexf("data//Train_Noordin_ExtComms_Computer-based.gexf")))
+
+
+
+#Networks
+
+
+    # Train_Noordin_ExtComms_Computer-based.gexf
+    #Train_Noordin_ExtComms_Videos.gexf
+    #Train_Noordin_ExtComms_Support-materials.gexf
+    #Train_Noordin_ExtComms_Print-media.gexf
+    #Train_Noordin_ExtComms_Unknown-commo.gexf
+
+#G_2=Noordin.get_noordin_network("data//Train_Noordin_ExtComms_Unknown-commo.gexf")
+# # for node in G_2:
+# #     if G_2.node[node]["color"]=="Red":
+# #
+# #         print (node,nx.degree(G_2,node))
+G_2=remove_red_edges(G_2)
+
+simulate_lying_monitor(G_2,"Pokec_badminton_no_red_edges")
+
+
+#network_details(G_2)
+#draw_network(nx.Graph(read_network_data_gexf("data//Train_Noordin_ExtComms_Computer-based.gexf")))
+#network_details(G_2)
+
+#measure_homophily(G_2)
