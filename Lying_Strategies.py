@@ -89,12 +89,28 @@ def get_neighbor_colors_setting2(G,node):
                     neighbor_colors[neighbor]="Red"
     return neighbor_colors
 
+# return true colors of the neighbors
+def lying_strategy_sample():
+
+    neighbor_colors={}
+
+    for neighbor in G.neighbors(node):
+
+        if (G.node[node]['color']=="Blue"):
+             neighbor_colors[neighbor]="Blue"
+
+        else:
+
+            neighbor_colors[neighbor]="Red"
+    return neighbor_colors
+
+
 
 
 ## Based on the lying strategy we use, this function returns the set of colors all nodes in G  say their neighbors are
 ## lying strategy here refers to some function in the code that would resturn colors I would say my neighbors are.
 # In the current version they are, get_neighbor_colors 1 and 2
-# if you have new lying strategies, implement them similar to the above methods to return colors of the neighbors
+# if you have new lying strategies, implement them similar to lying_strategy_sample to return colors of the neighbors
 def assign_color_I_say(lying_strategy, G):
 
     all_neighbor_colors={}
