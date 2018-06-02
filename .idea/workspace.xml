@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="d6ae975e-d220-45a4-9b70-45f1b47b858f" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/data/Noordin/Noordin_Red.csv" afterPath="$PROJECT_DIR$/data/Noordin/Noordin_Red.csv" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/data/Noordin/Noordin_communications.csv" afterPath="$PROJECT_DIR$/data/Noordin/Noordin_communications.csv" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/data/Noordin/Role_score.csv" afterPath="$PROJECT_DIR$/data/Noordin/Role_score.csv" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/data/Noordin/Role_score_2.csv" afterPath="$PROJECT_DIR$/data/Noordin/Role_score_2.csv" />
-    </list>
+    <list default="true" id="d6ae975e-d220-45a4-9b70-45f1b47b858f" name="Default" comment="" />
     <ignored path="Lying-Monitor_git.iws" />
     <ignored path=".idea/workspace.xml" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -73,8 +68,8 @@
       <file leaf-file-name="Lying_Strategies.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/Lying_Strategies.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.71511626" vertical-offset="591" max-vertical-offset="1380">
-              <caret line="97" column="39" selection-start-line="97" selection-start-column="39" selection-end-line="97" selection-end-column="39" />
+            <state vertical-scroll-proportion="0.5406977" vertical-offset="591" max-vertical-offset="1380">
+              <caret line="91" column="0" selection-start-line="91" selection-start-column="0" selection-end-line="91" selection-end-column="0" />
               <folding>
                 <element signature="e#26#44#0" expanded="true" />
                 <element signature="e#475#1164#0" expanded="false" />
@@ -401,9 +396,9 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1440" height="900" extended-state="0" />
-    <editor active="false" />
+    <editor active="true" />
     <layout>
-      <window_info id="Changes" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32891566" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32891566" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
@@ -505,8 +500,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/Lying_Strategies.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.71511626" vertical-offset="591" max-vertical-offset="1380">
-          <caret line="97" column="39" selection-start-line="97" selection-start-column="39" selection-end-line="97" selection-end-column="39" />
+        <state vertical-scroll-proportion="0.5406977" vertical-offset="591" max-vertical-offset="1380">
+          <caret line="91" column="0" selection-start-line="91" selection-start-column="0" selection-end-line="91" selection-end-column="0" />
           <folding>
             <element signature="e#26#44#0" expanded="true" />
             <element signature="e#475#1164#0" expanded="false" />
