@@ -16,7 +16,7 @@ def assign_honesty(G):
 
         node_honesty[node]=honesty[i]
         i+=1
-    nx.set_node_attributes(G,'honesty',node_honesty)
+    nx.set_node_attributes(G,name='honesty',values=node_honesty)
 
 
 

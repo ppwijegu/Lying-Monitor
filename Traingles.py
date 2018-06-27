@@ -12,9 +12,7 @@ def get_all_triangles(G):
     for node in G.nodes():
         all_triangles[node]=[]
 
-        neighbors=G.neighbors(node)
-
-
+        neighbors = list(G.neighbors(node))
 
         for i in range(len(neighbors)):
             for j in range(i+1,len(neighbors)):

@@ -50,8 +50,8 @@ class LyingMonitorMain():
 
         # usually needs to run 10 times and take the average results since the algorithms are probabilistic.
         # make these two variables smaller to run the code faster
-        self.runs_honesty = 5
-        self.runs_neighbor_color = 5
+        self.runs_honesty = 1
+        self.runs_neighbor_color = 1
 
 
 
@@ -253,8 +253,8 @@ class LyingMonitorMain():
                         for j in range(0, self.runs_neighbor_color):  # Number of runs with different start nodes and neighbor colors
                             print "start node run" +str(j)
 
-                            start_node=np.random.choice(red_nodes)
-                            while len(G_changed.neighbors(start_node))==0:  #select a node with neighbors as the start node
+                            start_node = np.random.choice(red_nodes)
+                            while len(list(G_changed.neighbors(start_node)))==0:  #select a node with neighbors as the start node
                                 start_node=np.random.choice(red_nodes)
 
                             all_neighbor_colors = Lying_Strategies.assign_color_I_say(self.lying_strategies[strategy_name],G_changed)
@@ -381,25 +381,25 @@ if __name__ == "__main__":
     ###################################################################################
 
     # get noordin data
-    noordin = NetworkData.NoordinData()
+    # noordin = NetworkData.NoordinData()
 
     #noordin_data=["Train_Noordin_ExtComms_Computer-based.gexf","Train_Noordin_ExtComms_Videos.gexf","Train_Noordin_ExtComms_Support-materials.gexf","Train_Noordin_ExtComms_Unknown-commo.gexf","Train_Noordin_ExtComms_Print-media.gexf"]
 
     #using one noordin network
-    noordin_data = ["Train_Noordin_ExtComms_Unknown-commo.gexf"]
-    # run simulations for all noordin data
-    for network in noordin_data:
+    # noordin_data = ["Train_Noordin_ExtComms_Unknown-commo.gexf"]
+    # # run simulations for all noordin data
+    # for network in noordin_data:
 
-        G = noordin.get_network_data("data//Noordin//"+network)  ##Graph you are selecting to input. Change the path according to your input
-
-        Learning_based_monitors.triangles=Traingles.get_all_triangles(G)  # pre calculate triangles for learning algorithm
-
-        nodes_lie=False  # define which problem setting ( setting 1: Nodes don't lie about own color, setting 2: Nodes lie about own color)
-
-        lying_monitor = LyingMonitorMain(G, start_learning=5, training_it=1) # For small networks set training_it to each iteration
-
-        lying_monitor.simulate_lying_monitor(network+"_results",nodes_lie) # Input the graph and file name to store results
-
+        # G = noordin.get_network_data("data//Noordin//"+network)  ##Graph you are selecting to input. Change the path according to your input
+        #
+        # Learning_based_monitors.triangles=Traingles.get_all_triangles(G)  # pre calculate triangles for learning algorithm
+        #
+        # nodes_lie = False  # define which problem setting ( setting 1: Nodes don't lie about own color, setting 2: Nodes lie about own color)
+        #
+        # lying_monitor = LyingMonitorMain(G, start_learning=5, training_it=1) # For small networks set training_it to each iteration
+        #
+        # lying_monitor.simulate_lying_monitor(network+"_results",nodes_lie) # Input the graph and file name to store results
+        #
 
     ###################################################################################
     ########################RUN POKEC NETWORKS#########################################
@@ -407,7 +407,7 @@ if __name__ == "__main__":
 
     # pokeC = NetworkData.PokeCData()
     #
-    # pokeC_path=["Pokec_kosicky_age","Pokec_kosicky_height"]
+    # pokeC_path=["Pokec_kosicky_age"]#,"Pokec_kosicky_height"]
     #
     # # run all pokec networks.
     #
@@ -422,27 +422,27 @@ if __name__ == "__main__":
     #     lying_monitor = LyingMonitorMain(G, start_learning=20, training_it=20) # For large networks set training_it to 20
     #
     #     lying_monitor.simulate_lying_monitor(network+"_results",nodes_lie)
-    #
+
 
 
     ###################################################################################
     ########################RUN FACEBOOK100 NETWORKS###################################
     ###################################################################################
 
-    # network = "Colgate88" # also can select Amherst41
-    # attribute="dorm" #select the facebook100 attribute, you can also use "year"
-    # order = 1 # select the attribute value with highest # of nodes
-    # facebookData = NetworkData.Facebook100Data(attribute, order)
-    #
-    # G = facebookData.get_network_data("data//facebook100//"+network)
-    #
-    # nodes_lie=False  # define which problem setting ( setting 1: Nodes don't lie about own color, setting 2: Nodes lie about own color)
-    #
-    # lying_monitor = LyingMonitorMain(G, start_learning=20, training_it=20) # For small networks set training_it to each iteration
-    #
-    # lying_monitor.simulate_lying_monitor(network+"_results",nodes_lie) # Input the graph and file name to store results
-    #
-    #
+    network = "Colgate88" # also can select Amherst41
+    attribute="dorm" #select the facebook100 attribute, you can also use "year"
+    order = 1 # select the attribute value with highest # of nodes
+    facebookData = NetworkData.Facebook100Data(attribute, order)
+
+    G = facebookData.get_network_data("data//facebook100//"+network)
+
+    nodes_lie=False  # define which problem setting ( setting 1: Nodes don't lie about own color, setting 2: Nodes lie about own color)
+
+    lying_monitor = LyingMonitorMain(G, start_learning=20, training_it=20) # For small networks set training_it to each iteration
+
+    lying_monitor.simulate_lying_monitor(network+"_results",nodes_lie) # Input the graph and file name to store results
+
+
 
 
 

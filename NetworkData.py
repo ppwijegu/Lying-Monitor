@@ -69,7 +69,7 @@ class NoordinData(NetworkData):
                 if element["Role score"]!='':
                     node_hierarchy[element['Name']]=int(element["Role score"])
 
-        nx.set_node_attributes(self.G,'centrality',node_hierarchy)
+        nx.set_node_attributes(self.G,name='centrality',values=node_hierarchy)
 
 
 class PokeCData(NetworkData):
@@ -90,7 +90,7 @@ class PokeCData(NetworkData):
     def read_network_data(self, path):
 
         G_all = pickle.load(open(path))
-        self.G = sorted(nx.connected_component_subgraphs(G_all), key = len, reverse=True)[0]
+        self.G = sorted(nx.connected_component_subgraphs(G_all.to_undirected()), key = len, reverse=True)[0]
 
 
 
@@ -112,7 +112,10 @@ class Facebook100Data(NetworkData):
 
     def read_network_data(self, path):
 
-        G_current = pickle.load(open(path))
+        G_current = pickle.load(open(path+"_attribute.g"))
+
+        print list(G_current.nodes())
+
         self.G = sorted(nx.connected_component_subgraphs(G_current), key = len, reverse=True)[0]
 
     def assign_colors(self):
@@ -145,5 +148,6 @@ class Facebook100Data(NetworkData):
                 self.G.node[n]["color"]="Red"
             else :
                 self.G.node[n]["color"]="Blue"
+
 
 

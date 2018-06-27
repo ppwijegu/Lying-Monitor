@@ -242,7 +242,7 @@ def calculate_features(terrorist_graph,update):
 
 
         no_red_neighbors=len([n for n in terrorist_graph.neighbors(node) if terrorist_graph.node[n]["color"]=="Red"])
-        blue_neighbors=(len(terrorist_graph.neighbors(node))-no_red_neighbors)
+        blue_neighbors=(len(list(terrorist_graph.neighbors(node)))-no_red_neighbors)
 
 
         red_says_red=len([n for n in terrorist_graph.node[node]['SaysRed'] if terrorist_graph.node[n]['color']=="Red"])
