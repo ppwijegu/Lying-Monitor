@@ -79,9 +79,12 @@ def predict_next_monitor(predict_model,terrorist_graph,predict_set):
 
     for node in predict_set.keys():
 
+        #predict_set[node].values().
+
+        feature_array =  np.array(predict_set[node].values()).reshape((1, -1))
 
 
-        probs=predict_model.predict_proba(predict_set[node].values())
+        probs=predict_model.predict_proba(feature_array)
 
         red_prob=probs[0][1]
 
@@ -524,8 +527,9 @@ def collective_classification(terrorist_graph,predict_model):
 
             node_features=collective_features(terrorist_graph,global_param,next)
 
+            feature_array =  np.array(node_features.values()).reshape((1, -1))
 
-            probs=predict_model.predict_proba(node_features.values())
+            probs=predict_model.predict_proba(feature_array)
 
 
 
@@ -554,8 +558,9 @@ def collective_classification(terrorist_graph,predict_model):
 
                     node_features=collective_features(terrorist_graph,global_param,node_pair[0])
 
+                    feature_array =  np.array(node_features.values()).reshape((1, -1))
 
-                    probs=predict_model.predict_proba(node_features.values())
+                    probs=predict_model.predict_proba(feature_array)
 
 
                     prob_red=probs[0][1]

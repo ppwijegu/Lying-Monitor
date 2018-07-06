@@ -50,8 +50,8 @@ class LyingMonitorMain():
 
         # usually needs to run 10 times and take the average results since the algorithms are probabilistic.
         # make these two variables smaller to run the code faster
-        self.runs_honesty = 1
-        self.runs_neighbor_color = 1
+        self.runs_honesty = 5
+        self.runs_neighbor_color = 5
 
 
 
@@ -380,7 +380,7 @@ if __name__ == "__main__":
     ########################RUN NOORDIN NETWORKS#######################################
     ###################################################################################
 
-    # get noordin data
+    # # get noordin data
     # noordin = NetworkData.NoordinData()
     #
     # noordin_data=["Train_Noordin_ExtComms_Computer-based.gexf","Train_Noordin_ExtComms_Videos.gexf","Train_Noordin_ExtComms_Support-materials.gexf","Train_Noordin_ExtComms_Unknown-commo.gexf","Train_Noordin_ExtComms_Print-media.gexf"]
@@ -399,7 +399,7 @@ if __name__ == "__main__":
     #     lying_monitor = LyingMonitorMain(G, start_learning=5, training_it=1) # For small networks set training_it to each iteration
     #
     #     lying_monitor.simulate_lying_monitor(network+"_results",nodes_lie) # Input the graph and file name to store results
-
+    #
 
     ###################################################################################
     ########################RUN POKEC NETWORKS#########################################
