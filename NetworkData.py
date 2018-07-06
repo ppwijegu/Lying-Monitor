@@ -114,8 +114,6 @@ class Facebook100Data(NetworkData):
 
         G_current = pickle.load(open(path+"_attribute.g"))
 
-        print list(G_current.nodes())
-
         self.G = sorted(nx.connected_component_subgraphs(G_current), key = len, reverse=True)[0]
 
     def assign_colors(self):

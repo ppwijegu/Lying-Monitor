@@ -380,16 +380,16 @@ if __name__ == "__main__":
     ########################RUN NOORDIN NETWORKS#######################################
     ###################################################################################
 
-    #get noordin data
+    # get noordin data
     # noordin = NetworkData.NoordinData()
-
+    #
     # noordin_data=["Train_Noordin_ExtComms_Computer-based.gexf","Train_Noordin_ExtComms_Videos.gexf","Train_Noordin_ExtComms_Support-materials.gexf","Train_Noordin_ExtComms_Unknown-commo.gexf","Train_Noordin_ExtComms_Print-media.gexf"]
-
-    # using one noordin network
+    #
+    # # using one noordin network
     # noordin_data = ["Train_Noordin_ExtComms_Unknown-commo.gexf"]
     # # run simulations for all noordin data
     # for network in noordin_data:
-
+    #
     #     G = noordin.get_network_data("data//Noordin//"+network)  ##Graph you are selecting to input. Change the path according to your input
     #
     #     Learning_based_monitors.triangles=Traingles.get_all_triangles(G)  # pre calculate triangles for learning algorithm
@@ -399,7 +399,7 @@ if __name__ == "__main__":
     #     lying_monitor = LyingMonitorMain(G, start_learning=5, training_it=1) # For small networks set training_it to each iteration
     #
     #     lying_monitor.simulate_lying_monitor(network+"_results",nodes_lie) # Input the graph and file name to store results
-    #
+
 
     ###################################################################################
     ########################RUN POKEC NETWORKS#########################################
@@ -437,6 +437,8 @@ if __name__ == "__main__":
     G = facebookData.get_network_data("data//facebook100//"+network)
 
     nodes_lie=False  # define which problem setting ( setting 1: Nodes don't lie about own color, setting 2: Nodes lie about own color)
+
+    Learning_based_monitors.triangles=Traingles.get_all_triangles(G)
 
     lying_monitor = LyingMonitorMain(G, start_learning=20, training_it=20) # For small networks set training_it to each iteration
 
