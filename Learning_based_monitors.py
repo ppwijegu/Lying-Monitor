@@ -266,7 +266,7 @@ def calculate_features(terrorist_graph,update):
         prob_red=get_prob_red(global_parameters,node,terrorist_graph)
 
 
-        node_triangles=triangles[node]
+        node_triangles = triangles[node]
         red_triangles=0
 
 
