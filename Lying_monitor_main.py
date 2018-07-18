@@ -428,7 +428,7 @@ if __name__ == "__main__":
     ###################################################################################
     ########################RUN FACEBOOK100 NETWORKS###################################
     ###################################################################################
-
+    #
     network = "Colgate88" # also can select Amherst41
     attribute="dorm" #select the facebook100 attribute, you can also use "year"
     order = 1 # select the attribute value with highest # of nodes

@@ -9,21 +9,20 @@ def get_all_triangles(G):
 
     all_triangles={}
 
-    for node in G.nodes():
-        all_triangles[node]=[]
+    cycls_3 = [c for c in nx.cycle_basis(G) if len(c)==3]
 
-        neighbors = list(G.neighbors(node))
+    for cycle in cycls_3:
 
-        for i in range(len(neighbors)):
-            for j in range(i+1,len(neighbors)):
+        for i in range(len(cycle)):
 
-                    if neighbors[j] in G.neighbors(neighbors[i]):
-                        all_triangles[node].append((neighbors[i],neighbors[j]))
+            if cycle[i] not in all_triangles:
 
+                all_triangles[cycle[i]] = []
+
+            all_triangles[cycle[i]].append((cycle[(i+1)%3],cycle[(i+2)%3]))
 
 
     return all_triangles
-
 
 
 
