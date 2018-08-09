@@ -26,9 +26,9 @@ If you  want add a new lying strategy following are the changes you need to make
 
 3) Select datasets in Lying_monitor_main.py, main method
 
-4) When you run the code results will be save to results folder
+4) When you run the code, results will be saved to results folder
 
-	a) The results file will have the average performance and standard deviation for # of runs .
+	a) The results file will have average performance and standard deviation for # of runs .
 	
 	b) Reported color columns are only applicable to problem setting 2 ( when nodes lie about their own color)
 	
